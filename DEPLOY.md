@@ -1,5 +1,7 @@
 # Deploy YouTube Thumbnail Resizer to Netlify
 
+🌐 **Live Demo**: [https://devopslearn.netlify.app/tools/thumbnail-resizer](https://devopslearn.netlify.app/tools/thumbnail-resizer)
+
 ## 🚀 Quick Deploy
 
 ### Option 1: Drag & Drop (Easiest)
@@ -70,6 +72,8 @@ netlify deploy --prod --dir=out
 ## 🌐 Live URL
 After deployment, your thumbnail resizer will be available at:
 - `https://your-site.netlify.app/tools/thumbnail-resizer`
+
+**Current Live Demo**: [https://devopslearn.netlify.app/tools/thumbnail-resizer](https://devopslearn.netlify.app/tools/thumbnail-resizer)
 
 ## 🐞 Troubleshooting
 

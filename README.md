@@ -1,6 +1,22 @@
 # DevOps Learning Platform - Learn by Fixing Broken Things
 
+🌐 **Live Demo**: [https://devopslearn.netlify.app/](https://devopslearn.netlify.app/)
+
 A hands-on learning platform for DevOps engineers based on real-world troubleshooting scenarios. Inspired by the "debugging in public" philosophy, this platform provides broken infrastructure scenarios that users must diagnose and fix.
+
+## ✨ **NEW: YouTube Thumbnail Resizer Tool**
+
+We've added a professional **YouTube Thumbnail Resizer** to help content creators optimize their thumbnails:
+
+🎯 **Try it now**: [https://devopslearn.netlify.app/tools/thumbnail-resizer](https://devopslearn.netlify.app/tools/thumbnail-resizer)
+
+### Features:
+- **Drag & drop upload** with support for JPG, PNG, WebP
+- **YouTube-optimized presets**: HD (1280x720) and SD (640x360)
+- **Smart compression** - automatically stays under 2MB
+- **Custom dimensions** and quality control
+- **Batch processing** for multiple images
+- **Mobile-responsive** interface
 
 ## 🎯 Features
 
