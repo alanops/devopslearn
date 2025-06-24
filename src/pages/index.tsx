@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
-import { Terminal, Database, Cloud, GitBranch, Activity, Shield } from 'lucide-react'
+import { Terminal, Database, Cloud, GitBranch, Activity, Shield, Image } from 'lucide-react'
 
 const scenarioCategories = [
   {
@@ -84,6 +84,15 @@ export default function Home() {
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             Real-world scenarios, real errors, real learning
           </p>
+          <div className="mt-4">
+            <Link
+              href="/tools/thumbnail-resizer"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
+            >
+              <Image className="w-4 h-4 mr-2" />
+              YouTube Thumbnail Resizer
+            </Link>
+          </div>
         </div>
       </header>
 

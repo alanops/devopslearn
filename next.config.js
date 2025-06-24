@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-        ],
-      },
-    ]
+  trailingSlash: true,
+  output: 'export',
+  images: {
+    unoptimized: true
+  },
+  // Disable API routes in static export
+  experimental: {
+    // This will be handled by Netlify Functions
+    outputFileTracingExcludes: {
+      '*': [
+        'node_modules/@swc/core-linux-x64-gnu',
+        'node_modules/@swc/core-linux-x64-musl',
+        'node_modules/@esbuild/linux-x64',
+      ],
+    },
   },
 }
 
