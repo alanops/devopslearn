@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  }
+}
+
+@layer components {
+  .terminal {
+    @apply bg-terminal-bg text-terminal-fg rounded-lg p-4 font-mono text-sm;
+  }
+  
+  .scenario-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow;
+  }
+  
+  .btn-primary {
+    @apply bg-devops-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-devops-secondary text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors;
+  }
+}

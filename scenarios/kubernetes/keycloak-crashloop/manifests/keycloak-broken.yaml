@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-config
+  namespace: keycloak
+data:
+  # Missing required DB_ADDR configuration
+  DB_VENDOR: postgres
+  DB_DATABASE: keycloak
+  DB_USER: keycloak
+  # DB_PASSWORD is missing - will cause authentication failure
+  KEYCLOAK_USER: admin
+  # KEYCLOAK_PASSWORD is missing
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  serviceName: keycloak
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:21.0
+        args: ["start-dev"]
+        env:
+        - name: DB_VENDOR
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config
+              key: DB_VENDOR
+        - name: DB_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config
+              key: DB_ADDR  # This will fail - key doesn't exist
+        - name: DB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config
+              key: DB_DATABASE
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-secret  # Secret doesn't exist
+              key: password
+        - name: KEYCLOAK_ADMIN
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak-config
+              key: KEYCLOAK_USER
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-secret  # Secret doesn't exist
+              key: password
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            memory: "256Mi"  # Too low - Keycloak needs more memory
+            cpu: "200m"      # Too low CPU
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  selector:
+    app: keycloak
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

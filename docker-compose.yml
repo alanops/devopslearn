@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_WS_URL=http://localhost:3001
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./src/server:/app
+    networks:
+      - devops-dojo-net
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_DB=devopslearn
+      - POSTGRES_USER=devops
+      - POSTGRES_PASSWORD=devopspass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - devops-dojo-net
+
+networks:
+  devops-dojo-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

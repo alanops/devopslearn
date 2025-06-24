@@ -1,0 +1,97 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd src/server && npm ci
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run type checking
+      run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd src/server && npm ci
+    
+    - name: Run tests
+      run: npm test
+
+  build-images:
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, test]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build scenario base image
+      run: docker build -t devopslearn/scenario-base:latest -f docker/Dockerfile.scenario-base .
+    
+    - name: Build frontend image
+      run: docker build -t devopslearn/frontend:latest -f docker/Dockerfile.frontend .
+    
+    - name: Build backend image
+      run: docker build -t devopslearn/backend:latest -f docker/Dockerfile.backend .
+    
+    - name: Build scenario images
+      run: |
+        docker build -t devopslearn/scenario-keycloak-crashloop:latest \
+          -f scenarios/kubernetes/keycloak-crashloop/Dockerfile \
+          scenarios/kubernetes/keycloak-crashloop/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-images
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
