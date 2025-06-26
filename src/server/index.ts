@@ -35,8 +35,20 @@ io.on('connection', (socket) => {
   
   const scenarioId = socket.handshake.query.scenarioId as string
   
+  if (!scenarioId) {
+    socket.emit('output', '\\r\\nError: No scenario ID provided\\r\\n')
+    socket.disconnect()
+    return
+  }
+  
+  console.log(`Starting scenario '${scenarioId}' for socket ${socket.id}`)
+  
   // Start a new container for this scenario
-  startScenarioContainer(socket, scenarioId)
+  startScenarioContainer(socket, scenarioId).catch((error) => {
+    console.error(`Failed to start scenario ${scenarioId}:`, error)
+    socket.emit('output', `\\r\\nError: Failed to start scenario: ${error.message}\\r\\n`)
+    socket.disconnect()
+  })
   
   socket.on('input', (data: string) => {
     const session = sessions.get(socket.id)
@@ -58,7 +70,16 @@ io.on('connection', (socket) => {
   })
 })
 
-function startScenarioContainer(socket: any, scenarioId: string) {
+async function checkDockerImage(imageName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const checkImage = spawn('docker', ['image', 'inspect', imageName])
+    checkImage.on('exit', (code) => {
+      resolve(code === 0)
+    })
+  })
+}
+
+async function startScenarioContainer(socket: any, scenarioId: string) {
   // Map scenario IDs to Docker images
   const scenarioImages: Record<string, string> = {
     'k8s-crashloop': 'devopslearn/scenario-keycloak-crashloop',
@@ -69,15 +90,35 @@ function startScenarioContainer(socket: any, scenarioId: string) {
   
   const imageName = scenarioImages[scenarioId] || 'devopslearn/scenario-base'
   
-  // Start Docker container with TTY
-  const dockerProcess = spawn('docker', [
+  // Check if Docker image exists
+  const imageExists = await checkDockerImage(imageName)
+  if (!imageExists) {
+    socket.emit('output', `\r\nError: Docker image '${imageName}' not found.\r\n`)
+    socket.emit('output', `Please run 'make scenario-build' to build the scenario images.\r\n`)
+    socket.emit('output', `\r\nDisconnecting...\r\n`)
+    socket.disconnect()
+    return
+  }
+  
+  // Build Docker run arguments
+  const args = [
     'run',
     '-it',
     '--rm',
     '--name', `devops-dojo-${socket.id}`,
     '--network', 'devops-dojo-net',
-    imageName
-  ], {
+  ]
+  
+  // Mount Docker socket for Kubernetes scenarios that need it
+  const k8sScenarios = ['k8s-crashloop', 'k8s-dns', 'k8s-istio']
+  if (k8sScenarios.includes(scenarioId)) {
+    args.push('-v', '/var/run/docker.sock:/var/run/docker.sock')
+  }
+  
+  args.push(imageName)
+  
+  // Start Docker container with TTY
+  const dockerProcess = spawn('docker', args, {
     env: { ...process.env, TERM: 'xterm-256color' }
   })
   
@@ -94,31 +135,115 @@ function startScenarioContainer(socket: any, scenarioId: string) {
   })
   
   dockerProcess.stderr.on('data', (data) => {
-    socket.emit('output', data.toString())
+    const errorMessage = data.toString()
+    console.error(`Container ${scenarioId} stderr:`, errorMessage)
+    socket.emit('output', errorMessage)
+  })
+  
+  dockerProcess.on('error', (error) => {
+    console.error(`Failed to start container for scenario ${scenarioId}:`, error)
+    socket.emit('output', `\\r\\nError: Failed to start container: ${error.message}\\r\\n`)
+    sessions.delete(socket.id)
   })
   
   dockerProcess.on('exit', (code) => {
+    console.log(`Container for scenario ${scenarioId} exited with code ${code}`)
     socket.emit('output', `\\r\\nContainer exited with code ${code}\\r\\n`)
     sessions.delete(socket.id)
   })
   
-  // Notify client that scenario is ready
+  // Notify client that scenario is ready after a short delay
+  // TODO: Replace with actual readiness check
   setTimeout(() => {
-    socket.emit('scenario-ready')
+    // Check if container is still running
+    if (sessions.has(socket.id)) {
+      socket.emit('scenario-ready')
+      console.log(`Scenario ${scenarioId} is ready for socket ${socket.id}`)
+    }
   }, 2000)
 }
 
 function cleanupSession(socketId: string) {
   const session = sessions.get(socketId)
   if (session) {
+    console.log(`Cleaning up session for ${socketId}, scenario: ${session.scenarioId}`)
     // Kill the Docker container
-    spawn('docker', ['kill', session.containerId])
+    const killProcess = spawn('docker', ['kill', session.containerId])
+    killProcess.on('error', (error) => {
+      console.error(`Error killing container ${session.containerId}:`, error)
+    })
     sessions.delete(socketId)
+  }
+}
+
+// Check if Docker daemon is accessible
+async function checkDockerDaemon(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const checkDocker = spawn('docker', ['version'])
+    checkDocker.on('exit', (code) => {
+      resolve(code === 0)
+    })
+    checkDocker.on('error', () => {
+      resolve(false)
+    })
+  })
+}
+
+// Ensure Docker network exists
+async function ensureDockerNetwork() {
+  try {
+    // Check if network exists
+    const checkNetwork = spawn('docker', ['network', 'inspect', 'devops-dojo-net'])
+    
+    await new Promise((resolve) => {
+      checkNetwork.on('exit', (code) => {
+        if (code !== 0) {
+          // Network doesn't exist, create it
+          console.log('Creating Docker network: devops-dojo-net')
+          const createNetwork = spawn('docker', ['network', 'create', 'devops-dojo-net'])
+          createNetwork.on('exit', (createCode) => {
+            if (createCode === 0) {
+              console.log('Docker network created successfully')
+            } else {
+              console.error('Failed to create Docker network')
+            }
+            resolve(null)
+          })
+        } else {
+          console.log('Docker network already exists')
+          resolve(null)
+        }
+      })
+    })
+  } catch (error) {
+    console.error('Error checking/creating Docker network:', error)
   }
 }
 
 const PORT = process.env.PORT || 3001
 
-server.listen(PORT, () => {
-  console.log(`DevOps Dojo server running on port ${PORT}`)
+// Initialize server with Docker checks
+async function initializeServer() {
+  console.log('Checking Docker daemon...')
+  const dockerAvailable = await checkDockerDaemon()
+  
+  if (!dockerAvailable) {
+    console.error('Error: Docker daemon is not accessible')
+    console.error('Please ensure Docker is installed and running')
+    process.exit(1)
+  }
+  
+  console.log('Docker daemon is accessible')
+  
+  await ensureDockerNetwork()
+  
+  server.listen(PORT, () => {
+    console.log(`DevOps Dojo server running on port ${PORT}`)
+  })
+}
+
+// Start the server
+initializeServer().catch((error) => {
+  console.error('Failed to initialize server:', error)
+  process.exit(1)
 })

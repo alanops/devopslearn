@@ -1,25 +1,11 @@
 FROM ubuntu:22.04
 
+RUN apt-get update && apt-get install -y curl gnupg
+RUN curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+RUN echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+
 # Install base tools
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    git \
-    vim \
-    nano \
-    htop \
-    net-tools \
-    dnsutils \
-    traceroute \
-    telnet \
-    jq \
-    python3 \
-    python3-pip \
-    nodejs \
-    npm \
-    docker.io \
-    kubectl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y     curl     wget     git     vim     nano     htop     net-tools     dnsutils     traceroute     telnet     jq     python3     python3-pip     nodejs     npm     docker.io     kubectl     lsb-release     unzip     && rm -rf /var/lib/apt/lists/*
 
 # Install Terraform
 RUN wget -O- https://apt.releases.hashicorp.com/gpg | apt-key add - \

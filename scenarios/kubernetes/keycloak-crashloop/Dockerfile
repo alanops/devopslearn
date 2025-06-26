@@ -12,12 +12,15 @@ COPY --chown=devops:devops setup.sh /home/devops/
 COPY --chown=devops:devops manifests/ /home/devops/manifests/
 COPY --chown=devops:devops solution/ /home/devops/.solution/
 
-USER devops
+USER root
+
+# Copy entrypoint script
+COPY --chown=devops:devops entrypoint.sh /home/devops/
 
 # Make scripts executable
-RUN chmod +x /home/devops/setup.sh
+RUN chmod +x /home/devops/setup.sh /home/devops/entrypoint.sh
 
-# Initialize the broken scenario
-RUN /home/devops/setup.sh
+USER devops
 
-CMD ["/bin/bash"]
+# Use entrypoint to run setup at container start time
+ENTRYPOINT ["/home/devops/entrypoint.sh"]
