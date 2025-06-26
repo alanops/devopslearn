@@ -56,8 +56,12 @@ export default function TerminalComponent({ scenarioId }: TerminalComponentProps
     terminal.current.open(terminalRef.current)
     fitAddon.current.fit()
 
-    // Connect to backend WebSocket
-    socket.current = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001', {
+    // Connect to backend WebSocket (same domain in production, localhost for dev)
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 
+                  (typeof window !== 'undefined' && window.location.origin) || 
+                  'http://localhost:3001'
+    
+    socket.current = io(wsUrl, {
       query: { scenarioId }
     })
 

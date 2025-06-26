@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { spawn, ChildProcess } from 'child_process'
 import cors from 'cors'
+import path from 'path'
 
 const app = express()
 const server = createServer(app)
@@ -15,6 +16,14 @@ const io = new Server(server, {
 
 app.use(cors())
 app.use(express.json())
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../public')))
+
+// Catch-all handler for frontend routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'))
+})
 
 interface ScenarioSession {
   containerId: string

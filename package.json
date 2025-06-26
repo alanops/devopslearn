@@ -4,12 +4,15 @@
   "description": "DevOps Learning Platform - Learn by Fixing Broken Things",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run build:server",
+    "build:server": "cd src/server && npm install && npm run build",
     "start": "next start",
+    "start:server": "cd src/server && npm start",
     "export": "next export",
     "lint": "next lint",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "railway:start": "cd src/server && node dist/index.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
