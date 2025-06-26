@@ -1,0 +1,24 @@
+FROM node:18-alpine
+
+# Install Docker CLI
+RUN apk add --no-cache docker-cli
+
+WORKDIR /app
+
+# Copy package files
+COPY src/server/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy server files
+COPY src/server ./
+
+# Create TypeScript config for server
+RUN echo '{"compilerOptions":{"target":"es2020","module":"commonjs","outDir":"./dist","strict":true,"esModuleInterop":true,"skipLibCheck":true,"forceConsistentCasingInFileNames":true}}' > tsconfig.json
+
+# Expose port
+EXPOSE 3001
+
+# Start server
+CMD ["npm", "run", "dev"]
