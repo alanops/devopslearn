@@ -1,7 +1,6 @@
 [build]
-  builder = "dockerfile"
-  dockerfilePath = "Dockerfile"
+  builder = "nixpacks"
 
 [deploy]
-  startCommand = "node index.js"
+  startCommand = "npm run railway:start"
   healthcheckPath = "/health"
