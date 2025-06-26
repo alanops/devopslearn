@@ -20,8 +20,12 @@ app.use(express.json())
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../public')))
 
-// Catch-all handler for frontend routes
-app.get('*', (req, res) => {
+// Catch-all handler for frontend routes (except WebSocket and API)
+app.get('*', (req, res, next) => {
+  // Skip serving static files for socket.io and API routes
+  if (req.path.startsWith('/socket.io') || req.path.startsWith('/api')) {
+    return next()
+  }
   res.sendFile(path.join(__dirname, '../public/index.html'))
 })
 
@@ -231,6 +235,32 @@ async function ensureDockerNetwork() {
 
 const PORT = process.env.PORT || 3001
 
+// Build scenario images on startup
+async function buildScenarioImages() {
+  console.log('Building scenario images...')
+  try {
+    const buildProcess = spawn('make', ['scenario-build'], { cwd: '..' })
+    
+    await new Promise((resolve, reject) => {
+      buildProcess.on('exit', (code) => {
+        if (code === 0) {
+          console.log('Scenario images built successfully')
+          resolve(null)
+        } else {
+          console.log('Scenario image build failed, will build on demand')
+          resolve(null) // Don't fail startup if images can't be built
+        }
+      })
+      buildProcess.on('error', (error) => {
+        console.log('Scenario image build error, will build on demand:', error.message)
+        resolve(null) // Don't fail startup
+      })
+    })
+  } catch (error) {
+    console.log('Scenario image build error, will build on demand:', error)
+  }
+}
+
 // Initialize server with Docker checks
 async function initializeServer() {
   console.log('Checking Docker daemon...')
@@ -245,6 +275,11 @@ async function initializeServer() {
   console.log('Docker daemon is accessible')
   
   await ensureDockerNetwork()
+  
+  // Build scenario images in background
+  buildScenarioImages().catch(error => {
+    console.log('Background scenario build failed:', error.message)
+  })
   
   server.listen(PORT, () => {
     console.log(`DevOps Dojo server running on port ${PORT}`)

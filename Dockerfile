@@ -1,15 +1,24 @@
-# Multi-stage build for full-stack Railway deployment
-FROM node:18-alpine AS frontend-builder
+# Simplified build for Railway - no Docker build during image creation
+FROM node:18-slim
+
+# Install only essential packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI (smaller alternative)
+RUN curl -fsSL https://get.docker.com | sh
 
 WORKDIR /app
 
-# Copy frontend package files
+# Copy package files and install dependencies
 COPY package*.json ./
+RUN npm ci --only=production
 
-# Install frontend dependencies
-RUN npm ci
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci --only=production
 
-# Copy frontend source
+# Copy and build frontend
 COPY src/ ./src/
 COPY public/ ./public/
 COPY next.config.js ./
@@ -17,53 +26,24 @@ COPY tailwind.config.js ./
 COPY postcss.config.js ./
 COPY tsconfig.json ./
 
-# Build frontend (static export)
 RUN npm run build
 
-# Backend stage
-FROM node:18-alpine AS backend-builder
+# Copy and build backend
+COPY backend/ ./backend/
+RUN cd backend && npm run build
 
-# Install Docker CLI for scenario management
-RUN apk add --no-cache docker-cli make
-
-WORKDIR /app
-
-# Copy backend files
-COPY backend/package*.json ./
-RUN npm ci --only=production
-
-# Copy backend source
-COPY backend/ ./
+# Copy scenario definitions (build images at runtime, not build time)
 COPY scenarios/ ./scenarios/
 COPY docker/ ./docker/
 COPY Makefile ./
 
-# Build TypeScript
-RUN npm run build
+# Setup file structure for serving
+RUN mkdir -p public && cp -r out/* public/
 
-# Production stage
-FROM node:18-alpine AS production
-
-# Install Docker CLI for runtime
-RUN apk add --no-cache docker-cli
-
-WORKDIR /app
-
-# Copy built frontend to be served by backend
-COPY --from=frontend-builder /app/out ./public
-
-# Copy backend
-COPY --from=backend-builder /app/dist ./
-COPY --from=backend-builder /app/node_modules ./node_modules/
-COPY --from=backend-builder /app/package.json ./
-
-# Copy scenarios and docker setup
-COPY --from=backend-builder /app/scenarios ./scenarios/
-COPY --from=backend-builder /app/docker ./docker/
-COPY --from=backend-builder /app/Makefile ./
+WORKDIR /app/backend
 
 # Expose port
 EXPOSE $PORT
 
-# Start the backend server (which will also serve frontend)
-CMD ["node", "index.js"]
+# Start backend server (builds scenario images on first use)
+CMD ["node", "dist/index.js"]
