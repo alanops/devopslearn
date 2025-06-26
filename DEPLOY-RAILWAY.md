@@ -14,7 +14,7 @@ This guide shows how to deploy the DevOps Learn platform using Railway for the b
 3. **Connect Repository**: Select your backend repository
 4. **Configure Environment Variables**:
    ```
-   FRONTEND_URL=https://your-netlify-site.netlify.app
+   FRONTEND_URL=https://devopslearn.netlify.app
    NODE_ENV=production
    ```
 5. **Deploy**: Railway will automatically detect the Dockerfile and deploy
@@ -36,7 +36,7 @@ This guide shows how to deploy the DevOps Learn platform using Railway for the b
 
 After deployment, update the Railway backend environment variable:
 ```
-FRONTEND_URL=https://your-actual-netlify-domain.netlify.app
+FRONTEND_URL=https://devopslearn.netlify.app
 ```
 
 ## Local Development
