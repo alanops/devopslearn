@@ -1,5 +1,5 @@
-# Ultra-minimal build for Railway
-FROM node:18-alpine
+# Ultra-minimal build for Railway - pinned version for reliability
+FROM node:18.19.0-alpine
 
 WORKDIR /app
 
