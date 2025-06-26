@@ -1,0 +1,24 @@
+# Ignore backup files
+Dockerfile.backup
+
+# Ignore development files
+.env*
+!.env.example
+
+# Ignore build artifacts
+.next/
+out/
+dist/
+node_modules/
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore test files
+tests/
+coverage/
+
+# Ignore git
+.git/
+.gitignore

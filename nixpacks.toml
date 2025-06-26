@@ -1,11 +1,11 @@
-[phases.build]
-cmds = [
-    "npm ci",
-    "npm run build"
-]
+[phases.setup]
+nixPkgs = ["nodejs-18_x"]
 
-[phases.start]
-cmd = "npm run railway:start"
+[phases.build]
+cmds = ["npm ci", "npm run build"]
+
+[start]
+cmd = "npm start"
 
 [variables]
 NODE_ENV = "production"
