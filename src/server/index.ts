@@ -93,6 +93,16 @@ async function checkDockerImage(imageName: string): Promise<boolean> {
 }
 
 async function startScenarioContainer(socket: any, scenarioId: string) {
+  // Check if Docker is available
+  const dockerAvailable = await checkDockerDaemon()
+  if (!dockerAvailable) {
+    socket.emit('output', '\r\nDocker scenarios are not available in this deployment.\r\n')
+    socket.emit('output', 'This is a demo version - Docker scenarios require a Docker-enabled host.\r\n')
+    socket.emit('output', '\r\nYou can still explore the frontend interface!\r\n')
+    socket.emit('scenario-ready')
+    return
+  }
+
   // Map scenario IDs to Docker images
   const scenarioImages: Record<string, string> = {
     'k8s-crashloop': 'devopslearn/scenario-keycloak-crashloop',
@@ -261,28 +271,30 @@ async function buildScenarioImages() {
   }
 }
 
-// Initialize server with Docker checks
+// Initialize server with optional Docker checks
 async function initializeServer() {
-  console.log('Checking Docker daemon...')
+  console.log('Starting DevOps Dojo server...')
+  
   const dockerAvailable = await checkDockerDaemon()
   
-  if (!dockerAvailable) {
-    console.error('Error: Docker daemon is not accessible')
-    console.error('Please ensure Docker is installed and running')
-    process.exit(1)
+  if (dockerAvailable) {
+    console.log('Docker daemon is accessible - scenario support enabled')
+    await ensureDockerNetwork()
+    
+    // Build scenario images in background
+    buildScenarioImages().catch(error => {
+      console.log('Background scenario build failed:', error.message)
+    })
+  } else {
+    console.log('Docker daemon not available - running in demo mode (no scenarios)')
+    console.log('Frontend will work, but Docker scenarios will be unavailable')
   }
-  
-  console.log('Docker daemon is accessible')
-  
-  await ensureDockerNetwork()
-  
-  // Build scenario images in background
-  buildScenarioImages().catch(error => {
-    console.log('Background scenario build failed:', error.message)
-  })
   
   server.listen(PORT, () => {
     console.log(`DevOps Dojo server running on port ${PORT}`)
+    if (!dockerAvailable) {
+      console.log('Note: Running in demo mode - Docker scenarios disabled')
+    }
   })
 }
 
