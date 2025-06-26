@@ -1,0 +1,33 @@
+# Ignore everything outside backend directory
+../src
+../public
+../pages
+../components
+../styles
+../tests
+../tools
+../out
+../node_modules
+../.next
+../next.config.js
+../tailwind.config.js
+../postcss.config.js
+../tsconfig.json
+../package.json
+../package-lock.json
+
+# Ignore unnecessary files
+*.md
+.git
+.gitignore
+.env*
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore build artifacts
+dist
+build
+.next
+out
