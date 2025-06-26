@@ -1,5 +1,6 @@
-# Ignore backup files
-Dockerfile.backup
+# Force no Docker detection
+Dockerfile*
+*.dockerfile
 
 # Ignore development files
 .env*
