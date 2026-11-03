@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Stop on failure so the "SCENARIO READY" marker is only printed on success
+set -e
+
 echo "Setting up Keycloak CrashLoopBackOff scenario..."
 
 # Create a kind cluster if not exists
@@ -25,6 +28,11 @@ nodes:
     protocol: TCP
 EOF
 fi
+
+# kind runs on the host's Docker, so its API server is only reachable from here
+# over the kind network. This also covers a cluster left by an earlier session.
+docker network connect kind "$(hostname)"
+kind export kubeconfig --name devops-dojo --internal
 
 # Set kubectl context
 kubectl config use-context kind-devops-dojo
